@@ -4,6 +4,10 @@ const app = express();
 
 app.use(express.json());
 
+app.get('/',(request,response)=>{
+  response.status(200).send(`<div><h1>Api de Recados</h1></div>`
+ )})
+
 let usuarios = [];
 
 app.post("/usuarios", (request, response) => {
