@@ -52,6 +52,47 @@ app.post("/usuarios/login", (request, response) => {
     }
   });
 });
+let recados = [];
+app.post("/recados/recado", (request, response) => {
+  const recado = request.body;
+  const id = recado.id;
+  const usuario = usuarios.find((usuario) => usuario.id === id);
+  if (!usuario) {
+    return response.status(402).json("Usuario não encontrado");
+  }
+  const existeRecado = recados.find((recado) => recado.id);
+  if (existeRecado) {
+    return response.status(402).json("já existe um recado para este usuário");
+  }
+  recados.push({
+    id: usuario.id,
+    titulo: recado.titulo,
+    descricao: recado.descricao,
+  });
+
+  response.status(200).json("recado criado com sucesso");
+});
+app.get("/recados/", (request, response) => {
+  response.status(200).json(recados);
+});
+app.put("/recados/:id", (request, response) => {
+  const recado = request.body;
+  const id = Number(request.params.id);
+  const indexRecado = recados.findIndex((recado) => recado.id === id);
+  recados[indexRecado] = {
+    id: id,
+    titulo: recado.titulo,
+    descricao: recado.descricao,
+  };
+  response.status(201).json(recados[indexRecado]);
+});
+
+app.delete("/recados/:id", (request, response) => {
+  const id = Number(request.params.id);
+  const indexRecado = recados.findIndex((recado) => recado.id === id);
+  recados.splice(indexRecado, 1);
+  return response.status(200).json("recado deletado");
+});
 
 app.listen(5555, () => {
     console.log("servidor Rodando");
