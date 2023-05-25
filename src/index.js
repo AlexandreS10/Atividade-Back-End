@@ -1,8 +1,11 @@
 import express, { json, request, response } from "express";
-import bcrypt from "bcrypt";
+
 const app = express();
+const bcrypt = require('bcrypt');
 
 app.use(express.json());
+
+
 
 app.get('/',(request,response)=>{
   response.status(200).send(`<div><h1>Api de Recados</h1></div>`
@@ -10,92 +13,125 @@ app.get('/',(request,response)=>{
 
 let usuarios = [];
 
-app.post("/usuarios", (request, response) => {
-  const usuario = request.body;
+app.post("/usuarios",async (request, response) => {
+  let {nome,email,senha }= request.body;
   const saltRounds = 10;
-  const email = usuario.email;
-
-  usuarios.forEach((usuario) => {
-    if (usuario.email === email) {
+  if ( nome === "" || email === "" || senha ==="") {
+    return response.status(402).json("Por favor informe nome,email e senha");
+  }
+  let validaUsuario= usuarios.forEach((usuario) => usuario.email === email)
+    if (validaUsuario) {
       return response.status(402).json("E-mail já cadastrado");
-    } else if (email === "") {
-      return response.status(402).json("Email inválido");
-    }
-  });
-  bcrypt.hash(usuario.password, saltRounds, function (err, hash) {
-    if (hash) {
-      usuarios.push({
-        id: Math.floor(Math.random() * 6767),
-        nome: usuario.nome,
-        email: usuario.email,
-        password: hash,
-      });
+    } else{
+      let id = Math.floor(Math.random() * 6767);
+      let senhaCripto =  await bcrypt.hash(senha,saltRounds);
+      let usuario ={id,nome,email,senhaCripto,recado:[]};
+      usuarios.push(usuario);
       return response.status(200).json("Usuário criado com sucesso");
-    } else {
-      return response.status(400).json("Ocorreu um erro" + err);
-    }
+    } 
   });
-});
+
 app.get("/usuarios", (request, response) => {
   response.status(200).json(usuarios);
 });
 
-app.post("/usuarios/login", (request, response) => {
-  const login = request.body;
-  const email = login.email;
-  const password = login.password;
-  const usuario = usuarios.find((usuario) => usuario.email === email);
-  if (!usuario || usuario === "") {
-    return response.status(402).json("E-mail ou senha Inválidos");
+app.post("/usuarios/login", async (request, response) => {
+  
+  let { email, senha } = request.body
+   let verificaUsuario = usuarios.find((usuario) => usuario.email === email);
+  
+  if (!verificaUsuario) {
+    return response.status(402).send("E-mail ou senha Inválidos");
   }
-  bcrypt.compare(password, usuario.password, function (err, result) {
-    if (result) {
-      return response.status(200).json("Usuario valido");
+    let senhaComparacao =  bcrypt.compare(senha,verificaUsuario.senhaCripto);
+
+    if (!senhaComparacao) {
+      return response.status(200).send("E-mail ou senha Inválidos");
     } else {
-      return response.status(402).json("Usuario invalido" + err);
+      return response.status(402).json(verificaUsuario.id);
     }
   });
+
+
+app.post("/usuarios/:id/recado",(request, response) => {
+  const novoRecado = request.body;
+  let recadoCriado = {
+    id: Math.floor(Math.random()*6767),
+    titulo: novoRecado.titulo,
+    descricao: novoRecado.descricao
+};
+  const id = request.params.id;
+
+  let idDoUsuario = usuarios.findIndex((usuario) => usuario.id === Number (id));
+ 
+    usuarios[idDoUsuario].recado.push(recadoCriado);
+
+   return response.status(200).send("Recado criado com sucesso");
+  
 });
-let recados = [];
-app.post("/recados/recado", (request, response) => {
-  const recado = request.body;
-  const id = recado.id;
-  const usuario = usuarios.find((usuario) => usuario.id === id);
+app.get("/usuarios/:id/recado", (request, response) => {
+  const usuarioId = parseInt(request.params.id);
+
+  const usuario = usuarios.find((usuario) => usuario.id === usuarioId);
+
   if (!usuario) {
-    return response.status(402).json("Usuario não encontrado");
-  }
-  const existeRecado = recados.find((recado) => recado.id);
-  if (existeRecado) {
-    return response.status(402).json("já existe um recado para este usuário");
-  }
-  recados.push({
-    id: usuario.id,
-    titulo: recado.titulo,
-    descricao: recado.descricao,
-  });
+    return res.status(404).json("Usuário não encontrado.");
 
-  response.status(200).json("recado criado com sucesso");
-});
-app.get("/recados/", (request, response) => {
-  response.status(200).json(recados);
-});
-app.put("/recados/:id", (request, response) => {
-  const recado = request.body;
-  const id = Number(request.params.id);
-  const indexRecado = recados.findIndex((recado) => recado.id === id);
-  recados[indexRecado] = {
-    id: id,
-    titulo: recado.titulo,
-    descricao: recado.descricao,
-  };
-  response.status(201).json(recados[indexRecado]);
+  }else{
+
+  const page = request.query.page || 1;
+  const pages = Math.ceil(usuario.recado?.length / 3);
+  const indice = (page - 1) * 3;
+  const aux = [...usuario.recado]; // spread operator
+  const result = aux.splice(indice, 3);
+
+  return response.status(200).json({ total: usuario.recado.length, recados: result, pages });
+}
 });
 
-app.delete("/recados/:id", (request, response) => {
+app.put("/usuarios/:id/recado/:idDoRecado",(request, response) => {
+  const idDoUsuario = request.params.id;
+  const idDoRecado = request.params.idDoRecado;
+
+  const usuario = usuarios.find(usuario => usuario.id === Number(idDoUsuario));
+
+  const recado = usuario.recado.find(recado => recado.id === Number(idDoRecado));
+  
+  if (!recado ) {
+    return response.status(404).send('Recado não encontrado');
+  }
+
+  if (usuario === undefined && recado === recado) {
+    return response.status(404).send('Usuario não encontrado');
+  }
+else{
+  recado.titulo = request.body.titulo;
+  recado.descricao = request.body.descricao;
+
+  response.status(200).send('Recado atualizado com sucesso');
+  return;
+}
+  
+});
+app.delete("/usuarios/:id/recado/:idDoRecado", (request, response) => {
   const id = Number(request.params.id);
-  const indexRecado = recados.findIndex((recado) => recado.id === id);
-  recados.splice(indexRecado, 1);
-  return response.status(200).json("recado deletado");
+  const idDoRecado = Number(request.params.idDoRecado)
+  const indexUsuario = usuarios.findIndex((usuario) => usuario.id === id);
+
+  if (indexUsuario < 0) {
+    response.status(404).send("Usuário não encontrado.");
+    return;
+    }
+
+  const indexDoRecado =  usuarios[indexUsuario].recado.findIndex((recado)=>recado.id === idDoRecado);
+  
+  if (indexDoRecado < 0) {
+    response.status(404).send("Recado não encontrado.");
+    return;
+    }
+  
+  usuarios[indexUsuario].recado.splice(indexDoRecado, 1);
+  return response.status(200).send("recado deletado");
 });
 
 app.listen(5555, () => {
