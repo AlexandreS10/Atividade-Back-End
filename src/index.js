@@ -1,10 +1,10 @@
 import express, { json, request, response } from "express";
-
+import cors from 'cors'
 const app = express();
 const bcrypt = require('bcrypt');
 
 app.use(express.json());
-
+app.use(cors('*'));
 
 
 app.get('/',(request,response)=>{
