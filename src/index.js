@@ -45,10 +45,10 @@ app.post("/usuarios/login", async (request, response) => {
   }
     let senhaComparacao =  bcrypt.compare(senha,verificaUsuario.senhaCripto);
 
-    if (!senhaComparacao) {
-      return response.status(200).send("E-mail ou senha Inválidos");
+    if (!senhaComparacao) {      
+      return response.status(200).json(verificaUsuario.id).send("Usúario logado")
     } else {
-      return response.status(402).json(verificaUsuario.id);
+      return response.status(402).send("E-mail ou senha Inválidos");  
     }
   });
 
