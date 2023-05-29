@@ -36,21 +36,20 @@ app.get("/usuarios", (request, response) => {
 });
 
 app.post("/usuarios/login", async (request, response) => {
-  
-  let { email, senha } = request.body
-   let verificaUsuario = usuarios.find((usuario) => usuario.email === email);
-  
-  if (!verificaUsuario) {
-    return response.status(402).send("E-mail ou senha Inválidos");
-  }
-    let senhaComparacao =  bcrypt.compare(senha,verificaUsuario.senhaCripto);
+  let { email, senha } = request.body;
 
-    if (!senhaComparacao) {      
-      return response.status(200).json(verificaUsuario.id).send("Usúario logado")
-    } else {
-      return response.status(402).send("E-mail ou senha Inválidos");  
-    }
-  });
+  let verificaUsuario = usuarios.find((usuario) => usuario.email === email);
+  if (!verificaUsuario) {
+    return response.status(402).send("E-mail ou senha inválidos");
+  }
+
+  let senhaIguais = await bcrypt.compare(senha, verificaUsuario.senhaCripto);
+  if (!senhaIguais) {
+    return response.status(402).send("E-mail ou senha inválidos");
+  } else {
+    return response.status(200).json(verificaUsuario.id).send("Usuário logado");
+  }
+});
 
 
 app.post("/usuarios/:id/recado",(request, response) => {
