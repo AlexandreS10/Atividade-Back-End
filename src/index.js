@@ -43,7 +43,7 @@ app.post("/usuarios/login", async (request, response) => {
     return response.status(402).send("E-mail ou senha inválidos");
   }
 
-  let senhaIguais = await bcrypt.compare(senha, verificaUsuario.senhaCripto);
+  let senhaIguais = await bcrypt.compare(senha,senhaCripto);
   if (!senhaIguais) {
     return response.status(402).send("E-mail ou senha inválidos");
   } else {
